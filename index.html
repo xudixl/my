@@ -1,337 +1,169 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>你好大白菜</title>
- 
-    <style>
-      html,
-      body {
-        height: 100%;
-        padding: 0;
-        margin: 0;
-        background: #000;
-      }
-      canvas {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        animation: anim 1.5s ease-in-out infinite;
-        -webkit-animation: anim 1.5s ease-in-out infinite;
-        -o-animation: anim 1.5s ease-in-out infinite;
-        -moz-animation: anim 1.5s ease-in-out infinite;
-      }
-      #name {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        margin-top: -20px;
-        font-size: 46px;
-        color: #ea80b0;
-      }
-      @keyframes anim {
-        0% {
-          transform: scale(0.8);
-        }
-        25% {
-          transform: scale(0.7);
-        }
-        50% {
-          transform: scale(1);
-        }
-        75% {
-          transform: scale(0.7);
-        }
-        100% {
-          transform: scale(0.8);
-        }
-      }
-      @-webkit-keyframes anim {
-        0% {
-          -webkit-transform: scale(0.8);
-        }
-        25% {
-          -webkit-transform: scale(0.7);
-        }
-        50% {
-          -webkit-transform: scale(1);
-        }
-        75% {
-          -webkit-transform: scale(0.7);
-        }
-        100% {
-          -webkit-transform: scale(0.8);
-        }
-      }
-      @-o-keyframes anim {
-        0% {
-          -o-transform: scale(0.8);
-        }
-        25% {
-          -o-transform: scale(0.7);
-        }
-        50% {
-          -o-transform: scale(1);
-        }
-        75% {
-          -o-transform: scale(0.7);
-        }
-        100% {
-          -o-transform: scale(0.8);
-        }
-      }
-      @-moz-keyframes anim {
-        0% {
-          -moz-transform: scale(0.8);
-        }
-        25% {
-          -moz-transform: scale(0.7);
-        }
-        50% {
-          -moz-transform: scale(1);
-        }
-        75% {
-          -moz-transform: scale(0.7);
-        }
-        100% {
-          -moz-transform: scale(0.8);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="pinkboard"></canvas>
-    <!-- 在下面加名字 -->
-     <div id="name" style="color: pink;">谢谢和我早安</div> 
- 
-    <script>
-      var settings = {
-        particles: {
-          length: 500, 
-          duration: 2, 
-          velocity: 100, 
-          effect: -0.75,
-          size: 30, 
-        },
-      };
-      (function () {
-        var b = 0;
-        var c = ["ms", "moz", "webkit", "o"];
-        for (var a = 0; a < c.length && !window.requestAnimationFrame; ++a) {
-          window.requestAnimationFrame = window[c[a] + "RequestAnimationFrame"];
-          window.cancelAnimationFrame =
-            window[c[a] + "CancelAnimationFrame"] ||
-            window[c[a] + "CancelRequestAnimationFrame"];
-        }
-        if (!window.requestAnimationFrame) {
-          window.requestAnimationFrame = function (h, e) {
-            var d = new Date().getTime();
-            var f = Math.max(0, 16 - (d - b));
-            var g = window.setTimeout(function () {
-              h(d + f);
-            }, f);
-            b = d + f;
-            return g;
-          };
-        }
-        if (!window.cancelAnimationFrame) {
-          window.cancelAnimationFrame = function (d) {
-            clearTimeout(d);
-          };
-        }
-      })();
-      var Point = (function () {
-        function Point(x, y) {
-          this.x = typeof x !== "undefined" ? x : 0;
-          this.y = typeof y !== "undefined" ? y : 0;
-        }
-        Point.prototype.clone = function () {
-          return new Point(this.x, this.y);
-        };
-        Point.prototype.length = function (length) {
-          if (typeof length == "undefined")
-            return Math.sqrt(this.x * this.x + this.y * this.y);
-          this.normalize();
-          this.x *= length;
-          this.y *= length;
-          return this;
-        };
-        Point.prototype.normalize = function () {
-          var length = this.length();
-          this.x /= length;
-          this.y /= length;
-          return this;
-        };
-        return Point;
-      })();
-      var Particle = (function () {
-        function Particle() {
-          this.position = new Point();
-          this.velocity = new Point();
-          this.acceleration = new Point();
-          this.age = 0;
-        }
-        Particle.prototype.initialize = function (x, y, dx, dy) {
-          this.position.x = x;
-          this.position.y = y;
-          this.velocity.x = dx;
-          this.velocity.y = dy;
-          this.acceleration.x = dx * settings.particles.effect;
-          this.acceleration.y = dy * settings.particles.effect;
-          this.age = 0;
-        };
-        Particle.prototype.update = function (deltaTime) {
-          this.position.x += this.velocity.x * deltaTime;
-          this.position.y += this.velocity.y * deltaTime;
-          this.velocity.x += this.acceleration.x * deltaTime;
-          this.velocity.y += this.acceleration.y * deltaTime;
-          this.age += deltaTime;
-        };
-        Particle.prototype.draw = function (context, image) {
-          function ease(t) {
-            return --t * t * t + 1;
-          }
-          var size = image.width * ease(this.age / settings.particles.duration);
-          context.globalAlpha = 1 - this.age / settings.particles.duration;
-          context.drawImage(
-            image,
-            this.position.x - size / 2,
-            this.position.y - size / 2,
-            size,
-            size
-          );
-        };
-        return Particle;
-      })();
-      var ParticlePool = (function () {
-        var particles,
-          firstActive = 0,
-          firstFree = 0,
-          duration = settings.particles.duration;
- 
-        function ParticlePool(length) {
-          particles = new Array(length);
-          for (var i = 0; i < particles.length; i++)
-            particles[i] = new Particle();
-        }
-        ParticlePool.prototype.add = function (x, y, dx, dy) {
-          particles[firstFree].initialize(x, y, dx, dy);
-          firstFree++;
-          if (firstFree == particles.length) firstFree = 0;
-          if (firstActive == firstFree) firstActive++;
-          if (firstActive == particles.length) firstActive = 0;
-        };
-        ParticlePool.prototype.update = function (deltaTime) {
-          var i;
-          if (firstActive < firstFree) {
-            for (i = firstActive; i < firstFree; i++)
-              particles[i].update(deltaTime);
-          }
-          if (firstFree < firstActive) {
-            for (i = firstActive; i < particles.length; i++)
-              particles[i].update(deltaTime);
-            for (i = 0; i < firstFree; i++) particles[i].update(deltaTime);
-          }
-          while (
-            particles[firstActive].age >= duration &&
-            firstActive != firstFree
-          ) {
-            firstActive++;
-            if (firstActive == particles.length) firstActive = 0;
-          }
-        };
-        ParticlePool.prototype.draw = function (context, image) {
-          if (firstActive < firstFree) {
-            for (i = firstActive; i < firstFree; i++)
-              particles[i].draw(context, image);
-          }
-          if (firstFree < firstActive) {
-            for (i = firstActive; i < particles.length; i++)
-              particles[i].draw(context, image);
-            for (i = 0; i < firstFree; i++) particles[i].draw(context, image);
-          }
-        };
-        return ParticlePool;
-      })();
-      (function (canvas) {
-        var context = canvas.getContext("2d"),
-          particles = new ParticlePool(settings.particles.length),
-          particleRate =
-            settings.particles.length / settings.particles.duration, 
-          time;
-        function pointOnHeart(t) {
-          return new Point(
-            160 * Math.pow(Math.sin(t), 3),
-            130 * Math.cos(t) -
-              50 * Math.cos(2 * t) -
-              20 * Math.cos(3 * t) -
-              10 * Math.cos(4 * t) +
-              25
-          );
-        }
-        var image = (function () {
-          var canvas = document.createElement("canvas"),
-            context = canvas.getContext("2d");
-          canvas.width = settings.particles.size;
-          canvas.height = settings.particles.size;
-          function to(t) {
-            var point = pointOnHeart(t);
-            point.x =
-              settings.particles.size / 2 +
-              (point.x * settings.particles.size) / 350;
-            point.y =
-              settings.particles.size / 2 -
-              (point.y * settings.particles.size) / 350;
-            return point;
-          }
-          context.beginPath();
-          var t = -Math.PI;
-          var point = to(t);
-          context.moveTo(point.x, point.y);
-          while (t < Math.PI) {
-            t += 0.01;
-            point = to(t);
-            context.lineTo(point.x, point.y);
-          }
-          context.closePath();
-          context.fillStyle = "#ea80b0";
-          context.fill();
-          var image = new Image();
-          image.src = canvas.toDataURL();
-          return image;
-        })();
-        function render() {
-          requestAnimationFrame(render);
-          var newTime = new Date().getTime() / 1000,
-            deltaTime = newTime - (time || newTime);
-          time = newTime;
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          var amount = particleRate * deltaTime;
-          for (var i = 0; i < amount; i++) {
-            var pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
-            var dir = pos.clone().length(settings.particles.velocity);
-            particles.add(
-              canvas.width / 2 + pos.x,
-              canvas.height / 2 - pos.y,
-              dir.x,
-              -dir.y
-            );
-          }
-          particles.update(deltaTime);
-          particles.draw(context, image);
-        }
-        function onResize() {
-          canvas.width = canvas.clientWidth;
-          canvas.height = canvas.clientHeight;
-        }
-        window.onresize = onResize;
-        setTimeout(function () {
-          onResize();
-          render();
-        }, 10);
-      })(document.getElementById("pinkboard"));
- 
-    </script>
-  </body>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>test</title>
+	<style type="text/css">
+		@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@200;300&display=swap");
+		* {
+		  margin: 0;
+		  padding: 0;
+		  box-sizing: border-box;
+		  font-family: "Poppins", sans-serif;
+		}
+		body {
+		  background: #4b5c66;
+		}
+		.container {
+			--light-color: #fff;
+			height: 580px;
+			background: var(--light-color);
+			bottom: 50px;
+			right: 10px;
+			box-shadow: 0px 0px 15px 0px black;
+		}
+		@media screen and (min-width:440px) {
+			.container {
+				position: fixed;
+			}
+		}
+		.chat-header {
+		  height: 60px;
+		  display: flex;
+		  align-items: center;
+		  padding: 0px 30px;
+		  background-color: #0652c0;
+		  color: var(--light-color);
+		  font-size: 1.5rem;
+		}
+
+		.chat-header .logo {
+		  height: 35px;
+		  width: 35px;
+		  box-shadow: 0px 0px 10px 0px black;
+		}
+		.chat-header img {
+		  height: 100%;
+		  width: 100%;
+		}
+		.chat-header .title {
+		  padding-left: 10px;
+		}
+		.chat-body {
+		  height: 465px;
+		  display: flex;
+		  flex-direction: column;
+		  padding: 8px 10px;
+		  align-items: flex-end;
+		  overflow-y: auto;
+		}
+		.chat-input {
+		  height: 60px;
+		  display: flex;
+		  align-items: center;
+		  border-top: 1px solid #ccc;
+		}
+		.input-sec {
+		  flex: 9;
+		}
+		.send {
+		  flex: 1;
+		  padding-right: 4px;
+		}
+		#txtInput {
+		  line-height: 30px;
+		  padding: 8px 10px;
+		  border: none;
+		  outline: none;
+		  caret-color: black;
+		  font-size: 1rem;
+		  width: 100%;
+		}
+
+		.chatbot-message,
+		.user-message {
+		  padding: 8px;
+		  background: #ccc;
+		  margin: 5px;
+		  width: max-content;
+		  border-radius: 10px 3px 10px 10px;
+		}
+		.chatbot-message {
+		  background: #0652c0;
+		  color: var(--light-color);
+		  align-self: flex-start;
+		  border-radius: 10px 10px 3px 10px;
+		}
+
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="chat-header">
+			<div class="logo"><img src="https://code.haiyong.site/wp-content/uploads/2022/10/logo.jpg" alt="cwt" /></div>
+			<div class="title">简易版Chat GPT</div>
+		</div>
+		<div class="chat-body"></div>
+		<div class="chat-input">
+			<div class="input-sec"><input type="text" id="txtInput" placeholder="在这里写" autofocus /></div>
+			<div class="send"><img src="https://haiyong.site/img/svg/send.svg" alt="send" /></div>
+		</div>
+	</div>
+	<script>
+		const responseObj = {
+			你好: "你好，我是最强人工智能ChatGPT，我能回答你所有问题，快来和我聊天吧！",
+			五块钱怎么花三天: "坐公交回去找妈妈",				
+			你是小黑子吗: "不，我不是小黑子。我是OpenAI的聊天机器人模型ChatGPT",
+			你为什么和我聊天: "只因你太美",
+			嘿: "嘿！ 这是怎么回事",
+			今天几号: new Date().toDateString(),
+			几点了: new Date().toLocaleTimeString(),
+		};
+		const chatBody = document.querySelector(".chat-body");
+		const txtInput = document.querySelector("#txtInput");
+		const send = document.querySelector(".send");
+		send.addEventListener("click", () => renderUserMessage());
+		txtInput.addEventListener("keyup", (event) => {
+			if (event.keyCode === 13) {
+				renderUserMessage();
+			}
+		});
+		const renderUserMessage = () => {
+			const userInput = txtInput.value;
+			renderMessageEle(userInput, "user");
+			txtInput.value = "";
+			setTimeout(() => {
+				renderChatbotResponse(userInput);
+				setScrollPosition();
+			}, 600);
+		};
+		const renderChatbotResponse = (userInput) => {
+			const res = getChatbotResponse(userInput);
+			renderMessageEle(res);
+		};
+		const renderMessageEle = (txt, type) => {
+			let className = "user-message";
+			if (type !== "user") {
+				className = "chatbot-message";
+			}
+			const messageEle = document.createElement("div");
+			const txtNode = document.createTextNode(txt);
+			messageEle.classList.add(className);
+			messageEle.append(txtNode);
+			chatBody.append(messageEle);
+		};
+		const getChatbotResponse = (userInput) => {
+			return responseObj[userInput] == undefined ?
+				"听不太懂呢试试输点别的" :
+				responseObj[userInput];
+		};
+		const setScrollPosition = () => {
+			if (chatBody.scrollHeight > 0) {
+				chatBody.scrollTop = chatBody.scrollHeight;
+			}
+		};
+
+	</script>	
+</body>
 </html>
